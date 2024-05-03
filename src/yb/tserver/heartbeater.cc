@@ -553,7 +553,9 @@ Status Heartbeater::Thread::TryHeartbeat() {
   sending_full_report_ = sending_full_report_ && !all_processed;
 
   // Update the master's YSQL catalog version (i.e. if there were schema changes for YSQL objects).
-  if (FLAGS_ysql_enable_db_catalog_version_mode) {
+  // We only check --enable_ysql when --ysql_enable_db_catalog_version_mode=true
+  // to keep the logic backward compatible.
+  if (FLAGS_ysql_enable_db_catalog_version_mode && FLAGS_enable_ysql) {
     // We never expect rolling gflag change of --ysql_enable_db_catalog_version_mode. In per-db
     // mode, we do not use ysql_catalog_version.
     DCHECK(!last_hb_response_.has_ysql_catalog_version());
@@ -652,6 +654,7 @@ void Heartbeater::Thread::RunThread() {
   // Config the "last heartbeat response" to indicate that we need to register
   // -- since we've never registered before, we know this to be true.
   last_hb_response_.set_needs_reregister(true);
+
   // Have the Master request a full tablet report on 2nd HB.
   last_hb_response_.set_needs_full_tablet_report(false);
 

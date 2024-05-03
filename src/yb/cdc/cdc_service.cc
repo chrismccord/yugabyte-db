@@ -69,6 +69,8 @@
 #include "yb/tablet/tablet_peer.h"
 #include "yb/tablet/transaction_participant.h"
 
+#include "yb/tserver/service_util.h"
+
 #include "yb/util/flags.h"
 #include "yb/util/format.h"
 #include "yb/util/logging.h"
@@ -1546,11 +1548,19 @@ void CDCServiceImpl::GetChanges(
 
   auto original_leader_term = tablet_peer ? tablet_peer->LeaderTerm() : OpId::kUnknownTerm;
 
-  if ((!tablet_peer || tablet_peer->IsNotLeader()) && req->serve_as_proxy()) {
-    // Forward GetChanges() to tablet leader. This commonly happens in Kubernetes setups.
-    auto context_ptr = std::make_shared<RpcContext>(std::move(context));
-    TabletLeaderGetChanges(req, resp, context_ptr, tablet_peer);
-    return;
+  bool isNotLeader = tablet_peer && tablet_peer->IsNotLeader();
+  if (!tablet_peer || isNotLeader) {
+    if (req->serve_as_proxy()) {
+      // Forward GetChanges() to tablet leader. This commonly happens in Kubernetes setups.
+      auto context_ptr = std::make_shared<RpcContext>(std::move(context));
+      VLOG(2)
+          << "GetChangesRpc::TabletLeaderGetChanges is called because serve_as_proxy is turned on";
+      TabletLeaderGetChanges(req, resp, context_ptr, tablet_peer);
+      return;
+    }
+  }
+  if (isNotLeader) {
+    tserver::FillTabletConsensusInfo(resp, tablet_peer->tablet_id(), tablet_peer);
   }
 
   // If we can't serve this tablet...
@@ -1572,7 +1582,8 @@ void CDCServiceImpl::GetChanges(
       resp->mutable_error(),
       CDCErrorPB::LEADER_NOT_READY,
       context);
-
+  // Fill in tablet consensus info now we know that the tablet exists and is leader.
+  tserver::FillTabletConsensusInfoIfRequestOpIdStale(tablet_peer, req, resp);
   auto stream_meta_ptr = RPC_VERIFY_RESULT(
       GetStream(stream_id, RefreshStreamMapOption::kIfInitiatedState), resp->mutable_error(),
       CDCErrorPB::INTERNAL_ERROR, context);
@@ -1605,7 +1616,6 @@ void CDCServiceImpl::GetChanges(
       streaming_checkpoint_pb.set_key("");
       streaming_checkpoint_pb.set_write_id(0);
       resp->mutable_cdc_sdk_checkpoint()->CopyFrom(streaming_checkpoint_pb);
-
       context.RespondSuccess();
       return;
     }
@@ -3210,6 +3220,7 @@ void CDCServiceImpl::TabletLeaderGetChanges(
       [this, resp, context, rpc_handle](const Status& status, GetChangesResponsePB&& new_resp) {
         auto retained = rpcs_.Unregister(rpc_handle);
         *resp = std::move(new_resp);
+        VLOG(1) << "GetChangesRPC TabletLeaderGetChanges finished with status: " << status;
         RPC_STATUS_RETURN_ERROR(status, resp->mutable_error(), resp->error().code(), *context);
         context->RespondSuccess();
       });

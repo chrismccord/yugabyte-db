@@ -99,6 +99,7 @@ class GetAutoFlagsConfigResponsePB;
 
 namespace tserver {
 class LocalTabletServer;
+class TabletConsensusInfoPB;
 class TabletServerServiceProxy;
 }
 
@@ -449,20 +450,25 @@ class YBClient {
                          const boost::optional<uint32_t>& next_pg_oid = boost::none,
                          const TransactionMetadata* txn = nullptr,
                          const bool colocated = false,
-                         CoarseTimePoint deadline = CoarseTimePoint());
+                         CoarseTimePoint deadline = CoarseTimePoint(),
+                         const std::optional<std::string> source_namespace_name = std::nullopt,
+                         std::optional<HybridTime> clone_time = std::nullopt);
+
+  Status CloneNamespace(const std::string& target_namespace_name,
+                        const std::string& source_namespace_name,
+                        const YQLDatabase& database_type,
+                        std::optional<HybridTime> clone_time);
 
   // It calls CreateNamespace(), but before it checks that the namespace has NOT been yet
   // created. So, it prevents error 'namespace already exists'.
   // TODO(neil) When database_type is undefined, backend will not check error on database type.
   // Except for testing we should use proper database_types for all creations.
   Status CreateNamespaceIfNotExists(const std::string& namespace_name,
-                                    const boost::optional<YQLDatabase>& database_type =
-                                    boost::none,
+                                    const boost::optional<YQLDatabase>& database_type = boost::none,
                                     const std::string& creator_role_name = "",
                                     const std::string& namespace_id = "",
                                     const std::string& source_namespace_id = "",
-                                    const boost::optional<uint32_t>& next_pg_oid =
-                                    boost::none,
+                                    const boost::optional<uint32_t>& next_pg_oid = boost::none,
                                     const bool colocated = false);
 
   // Set 'create_in_progress' to true if a CreateNamespace operation is in-progress.
@@ -679,12 +685,6 @@ class YBClient {
       const std::vector<TableName>& table_names,
       BootstrapProducerCallback callback);
 
-  Result<NamespaceId> XClusterAddNamespaceToOutboundReplicationGroup(
-      const xcluster::ReplicationGroupId& replication_group_id,
-      const NamespaceName& namespace_name);
-
-  Status XClusterRemoveNamespaceFromOutboundReplicationGroup(
-      const xcluster::ReplicationGroupId& replication_group_id, const NamespaceId& namespace_id);
 
   // Update consumer pollers after a producer side tablet split.
   Status UpdateConsumerOnProducerSplit(
@@ -1029,6 +1029,14 @@ class YBClient {
 
   void ClearAllMetaCachesOnServer();
 
+  // Uses the TabletConsensusInfo piggybacked from a response to
+  // refresh a RemoteTablet in metacache. Returns true if the
+  // RemoteTablet was indeed refreshed, false otherwise.
+  bool RefreshTabletInfoWithConsensusInfo(
+      const tserver::TabletConsensusInfoPB& newly_received_info);
+
+  int64_t GetRaftConfigOpidIndex(const TabletId& tablet_id);
+
  private:
   class Data;
 
@@ -1056,6 +1064,7 @@ class YBClient {
   FRIEND_TEST(ClientTest, TestGetTabletServerBlacklist);
   FRIEND_TEST(ClientTest, TestMasterDown);
   FRIEND_TEST(ClientTest, TestMasterLookupPermits);
+  FRIEND_TEST(ClientTest, TestMetacacheRefreshWhenSentToWrongLeader);
   FRIEND_TEST(ClientTest, TestReplicatedTabletWritesAndAltersWithLeaderElection);
   FRIEND_TEST(ClientTest, TestScanFaultTolerance);
   FRIEND_TEST(ClientTest, TestScanTimeout);
