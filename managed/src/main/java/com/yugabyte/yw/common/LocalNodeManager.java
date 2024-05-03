@@ -145,23 +145,23 @@ public class LocalNodeManager {
     try {
       terminateProcessAndSubprocesses(pid);
     } catch (SecurityException | IllegalArgumentException e) {
-        System.err.println("Error occurred while terminating process: " + e.getMessage());
-        e.printStackTrace();
+      System.err.println("Error occurred while terminating process: " + e.getMessage());
+      e.printStackTrace();
     }
   }
 
   private void terminateProcessAndSubprocesses(long pid) {
-    ProcessHandle.of(pid).ifPresentOrElse(
-        process -> {
-            // Terminate the process and all its subprocesses
-            Stream<ProcessHandle> descendants = process.descendants();
-            descendants.forEach(ProcessHandle::destroy);
-            process.destroy();
-        },
-        () -> {
-            throw new IllegalArgumentException("No such process with PID: " + pid);
-        }
-    );
+    ProcessHandle.of(pid)
+        .ifPresentOrElse(
+            process -> {
+              // Terminate the process and all its subprocesses
+              Stream<ProcessHandle> descendants = process.descendants();
+              descendants.forEach(ProcessHandle::destroy);
+              process.destroy();
+            },
+            () -> {
+              throw new IllegalArgumentException("No such process with PID: " + pid);
+            });
   }
 
   public void killProcess(String nodeName, UniverseTaskBase.ServerType serverType)
@@ -445,9 +445,9 @@ public class LocalNodeManager {
   }
 
   public String getTmpDir(
-    Map<String, String> gflags,
-    String nodeName,
-    UniverseDefinitionTaskParams.UserIntent userIntent) {
+      Map<String, String> gflags,
+      String nodeName,
+      UniverseDefinitionTaskParams.UserIntent userIntent) {
     if (gflags.containsKey(GFlagsUtil.TMP_DIRECTORY)) {
       String tmpDir = gflags.get(GFlagsUtil.TMP_DIRECTORY);
       if (tmpDir.contains("/tmp/local/")) {
