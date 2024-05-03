@@ -73,7 +73,7 @@ public class SoftwareUpgradeLocalTest extends LocalProviderUniverseTestBase {
     UniverseDefinitionTaskParams.UserIntent userIntent = getDefaultUserIntent();
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
     Universe universe = createUniverse(userIntent);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     SoftwareUpgradeParams params = new SoftwareUpgradeParams();
     params.ybSoftwareVersion = DB_VERSION;
     params.setUniverseUUID(universe.getUniverseUUID());
@@ -86,7 +86,7 @@ public class SoftwareUpgradeLocalTest extends LocalProviderUniverseTestBase {
     universe = Universe.getOrBadRequest(universe.getUniverseUUID());
     assertEquals(SoftwareUpgradeState.Ready, universe.getUniverseDetails().softwareUpgradeState);
     assertFalse(universe.getUniverseDetails().isSoftwareRollbackAllowed);
-    // verifyPayload();
+    verifyPayload();
   }
 
   // TODO(vbansal): Enable these unit tests once 2.20.2 is releasesd.
@@ -98,7 +98,7 @@ public class SoftwareUpgradeLocalTest extends LocalProviderUniverseTestBase {
     UniverseDefinitionTaskParams.UserIntent userIntent = getDefaultUserIntent();
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
     Universe universe = createUniverse(userIntent);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     SoftwareUpgradeParams params = new SoftwareUpgradeParams();
     params.ybSoftwareVersion = NEW_DB_VERSION;
     params.setUniverseUUID(universe.getUniverseUUID());
@@ -121,7 +121,7 @@ public class SoftwareUpgradeLocalTest extends LocalProviderUniverseTestBase {
     universe = Universe.getOrBadRequest(universe.getUniverseUUID());
     assertEquals(SoftwareUpgradeState.Ready, universe.getUniverseDetails().softwareUpgradeState);
     assertFalse(universe.getUniverseDetails().isSoftwareRollbackAllowed);
-    // verifyPayload();
+    verifyPayload();
   }
 
   // TODO(vbansal): Enable these unit tests once 2.20.2 is releasesd.
@@ -133,7 +133,7 @@ public class SoftwareUpgradeLocalTest extends LocalProviderUniverseTestBase {
     UniverseDefinitionTaskParams.UserIntent userIntent = getDefaultUserIntent();
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
     Universe universe = createUniverse(userIntent);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     SoftwareUpgradeParams params = new SoftwareUpgradeParams();
     params.ybSoftwareVersion = NEW_DB_VERSION;
     params.setUniverseUUID(universe.getUniverseUUID());
@@ -145,7 +145,7 @@ public class SoftwareUpgradeLocalTest extends LocalProviderUniverseTestBase {
     assertEquals(TaskInfo.State.Success, taskInfo.getTaskState());
     universe = Universe.getOrBadRequest(universe.getUniverseUUID());
     assertTrue(universe.getUniverseDetails().isSoftwareRollbackAllowed);
-    // verifyPayload();
+    verifyPayload();
     if (!universe.getUniverseDetails().softwareUpgradeState.equals(SoftwareUpgradeState.Ready)) {
       FinalizeUpgradeParams finalizeUpgradeParams = new FinalizeUpgradeParams();
       finalizeUpgradeParams.setUniverseUUID(universe.getUniverseUUID());

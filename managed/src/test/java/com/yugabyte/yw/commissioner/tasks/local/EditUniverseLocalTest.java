@@ -40,7 +40,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
     Universe universe = createUniverse(userIntent);
     initYSQL(universe);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     changeNumberOfNodesInPrimary(universe, 2);
     UUID taskID =
         universeCRUDHandler.update(
@@ -51,7 +51,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     verifyUniverseTaskSuccess(taskInfo);
     verifyUniverseState(Universe.getOrBadRequest(universe.getUniverseUUID()));
     verifyYSQL(universe);
-    // verifyPayload();
+    verifyPayload();
   }
 
   @Test
@@ -171,7 +171,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
     Universe universe = createUniverse(userIntent);
     initYSQL(universe);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     doAddReadReplica(universe, getDefaultUserIntent());
     universe = Universe.getOrBadRequest(universe.getUniverseUUID());
     verifyYSQL(universe, true);
@@ -187,7 +187,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     verifyUniverseState(Universe.getOrBadRequest(universe.getUniverseUUID()));
     verifyYSQL(universe);
     verifyYSQL(universe, true);
-    // verifyPayload();
+    verifyPayload();
   }
 
   @Test
@@ -196,7 +196,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
     Universe universe = createUniverse(userIntent);
     initYSQL(universe);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     UniverseDefinitionTaskParams.UserIntent rrIntent = getDefaultUserIntent();
     rrIntent.replicationFactor = 1;
     rrIntent.numNodes = 3;
@@ -232,7 +232,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     verifyUniverseState(Universe.getOrBadRequest(universe.getUniverseUUID()));
     verifyYSQL(universe);
     verifyYSQL(universe, true);
-    // verifyPayload();
+    verifyPayload();
   }
 
   @Test
@@ -241,7 +241,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
     Universe universe = createUniverse(userIntent);
     initYSQL(universe);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     UniverseDefinitionTaskParams.UserIntent rrIntent = getDefaultUserIntent();
     rrIntent.replicationFactor = 3;
     rrIntent.numNodes = 3;
@@ -268,7 +268,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     verifyUniverseState(Universe.getOrBadRequest(universe.getUniverseUUID()));
     verifyYSQL(universe);
     verifyYSQL(universe, true);
-    // verifyPayload();
+    verifyPayload();
   }
 
   @Test
@@ -277,7 +277,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
     Universe universe = createUniverse(userIntent);
     initYSQL(universe);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     UniverseDefinitionTaskParams.UserIntent rrIntent = getDefaultUserIntent();
     rrIntent.replicationFactor = 1;
     rrIntent.numNodes = 1;
@@ -310,7 +310,7 @@ public class EditUniverseLocalTest extends LocalProviderUniverseTestBase {
     verifyUniverseState(Universe.getOrBadRequest(universe.getUniverseUUID()));
     verifyYSQL(universe);
     verifyYSQL(universe, true);
-    // verifyPayload();
+    verifyPayload();
   }
 
   // FAILURE TESTS

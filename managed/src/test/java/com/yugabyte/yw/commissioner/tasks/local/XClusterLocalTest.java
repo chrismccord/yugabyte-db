@@ -122,7 +122,7 @@ public class XClusterLocalTest extends LocalProviderUniverseTestBase {
             details, target, YUGABYTE_DB, "select count(*) from some_table", 10);
     assertTrue(ysqlResponse.isSuccess());
     assertEquals("5", LocalNodeManager.getRawCommandOutput(ysqlResponse.getMessage()));
-    // verifyPayload();
+    verifyPayload();
   }
 
   @Test
@@ -225,6 +225,6 @@ public class XClusterLocalTest extends LocalProviderUniverseTestBase {
             targetNodeDetails, target, YUGABYTE_DB, "select count(*) from x_cluster", 10);
     assertTrue(ysqlResponse.isSuccess());
     assertEquals("2", LocalNodeManager.getRawCommandOutput(ysqlResponse.getMessage()));
-    // verifyPayload();
+    verifyPayload();
   }
 }

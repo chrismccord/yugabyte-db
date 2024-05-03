@@ -131,7 +131,7 @@ public class RetryableLocalTests extends LocalProviderUniverseTestBase {
     userIntent.specificGFlags =
         SpecificGFlags.construct(EditUniverseLocalTest.GFLAGS, EditUniverseLocalTest.GFLAGS);
     Universe universe = createUniverse(userIntent);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     MDC.put(Commissioner.SUBTASK_ABORT_POSITION_PROPERTY, abortPosition);
     TaskInfo taskInfo = taskFunction.apply(universe);
     assertEquals(TaskInfo.State.Aborted, taskInfo.getTaskState());
@@ -141,7 +141,7 @@ public class RetryableLocalTests extends LocalProviderUniverseTestBase {
     taskInfo = CommissionerBaseTest.waitForTask(customerTask.getTaskUUID());
     assertEquals(TaskInfo.State.Success, taskInfo.getTaskState());
     verifyUniverseState(Universe.getOrBadRequest(universe.getUniverseUUID()));
-    // verifyPayload();
+    verifyPayload();
     verifyYSQL(universe);
   }
 }

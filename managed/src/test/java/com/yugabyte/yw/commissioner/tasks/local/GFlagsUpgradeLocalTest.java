@@ -47,7 +47,7 @@ public class GFlagsUpgradeLocalTest extends LocalProviderUniverseTestBase {
     userIntent.specificGFlags = new SpecificGFlags();
     Universe universe = createUniverse(userIntent);
     initYSQL(universe);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     SpecificGFlags specificGFlags =
         SpecificGFlags.construct(
             Collections.singletonMap("max_log_size", "1805"),
@@ -60,7 +60,7 @@ public class GFlagsUpgradeLocalTest extends LocalProviderUniverseTestBase {
     universe = Universe.getOrBadRequest(universe.getUniverseUUID());
     compareGFlags(universe);
     verifyYSQL(universe);
-    // verifyPayload();
+    verifyPayload();
     specificGFlags =
         SpecificGFlags.construct(
             Collections.singletonMap("max_log_size", "1806"),
@@ -81,7 +81,7 @@ public class GFlagsUpgradeLocalTest extends LocalProviderUniverseTestBase {
     doAddReadReplica(universe, getDefaultUserIntent());
     universe = Universe.getOrBadRequest(universe.getUniverseUUID());
     initYSQL(universe);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     SpecificGFlags specificGFlags =
         SpecificGFlags.construct(
             Collections.singletonMap("max_log_size", "1805"),
@@ -102,7 +102,7 @@ public class GFlagsUpgradeLocalTest extends LocalProviderUniverseTestBase {
     universe = Universe.getOrBadRequest(universe.getUniverseUUID());
     compareGFlags(universe);
     verifyYSQL(universe);
-    // verifyPayload();
+    verifyPayload();
   }
 
   @Test
@@ -110,7 +110,7 @@ public class GFlagsUpgradeLocalTest extends LocalProviderUniverseTestBase {
     Universe universe = createUniverse(getDefaultUserIntent());
     addReadReplica(universe, getDefaultUserIntent());
     initYSQL(universe);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     SpecificGFlags specificGFlags =
         SpecificGFlags.construct(
             Collections.singletonMap("max_log_size", "1805"),
@@ -131,7 +131,7 @@ public class GFlagsUpgradeLocalTest extends LocalProviderUniverseTestBase {
     universe = Universe.getOrBadRequest(universe.getUniverseUUID());
     compareGFlags(universe);
     verifyYSQL(universe);
-    // verifyPayload();
+    verifyPayload();
   }
 
   // @Test

@@ -70,7 +70,7 @@ public class BackupLocalTest extends LocalProviderUniverseTestBase {
     userIntent.ybcFlags = getYbcGFlags(userIntent);
     Universe universe = createUniverseWithYbc(userIntent);
     initYSQL(universe);
-    // initAndStartPayload(universe);
+    initAndStartPayload(universe);
     CustomerConfig customerConfig =
         ModelFactory.createNfsStorageConfig(customer, "test_nfs_storage", getBackupBaseDirectory());
     log.info("Customer config here: {}", customerConfig.toString());
@@ -89,7 +89,7 @@ public class BackupLocalTest extends LocalProviderUniverseTestBase {
     assertEquals(TaskInfo.State.Success, taskInfo.getTaskState());
     verifyYSQL(universe);
     verifyYSQL(universe, false, "yb_restore");
-    // verifyPayload();
+    verifyPayload();
   }
 
   @Test
@@ -121,6 +121,6 @@ public class BackupLocalTest extends LocalProviderUniverseTestBase {
     taskInfo = waitForTask(taskUUID, source, target);
     assertEquals(TaskInfo.State.Success, taskInfo.getTaskState());
     verifyYSQL(target);
-    // verifyPayload();
+    verifyPayload();
   }
 }
