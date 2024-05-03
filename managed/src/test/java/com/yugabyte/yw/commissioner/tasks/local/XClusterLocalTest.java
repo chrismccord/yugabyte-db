@@ -65,7 +65,7 @@ public class XClusterLocalTest extends LocalProviderUniverseTestBase {
     userIntent.ybcFlags = getYbcGFlags(userIntent);
     Universe source = createUniverseWithYbc(userIntent);
     initYSQL(source);
-    // initAndStartPayload(source);
+    initAndStartPayload(source);
 
     userIntent = getDefaultUserIntent("target-universe", false);
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
@@ -133,7 +133,7 @@ public class XClusterLocalTest extends LocalProviderUniverseTestBase {
     userIntent.ybcFlags = getYbcGFlags(userIntent);
     Universe source = createUniverseWithYbc(userIntent);
     initYSQL(source);
-    // initAndStartPayload(source);
+    initAndStartPayload(source);
 
     userIntent = getDefaultUserIntent("target-universe", false);
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);

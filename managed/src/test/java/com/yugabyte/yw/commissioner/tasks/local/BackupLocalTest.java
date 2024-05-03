@@ -99,7 +99,7 @@ public class BackupLocalTest extends LocalProviderUniverseTestBase {
     userIntent.ybcFlags = getYbcGFlags(userIntent);
     Universe source = createUniverseWithYbc(userIntent);
     initYSQL(source);
-    // initAndStartPayload(source);
+    initAndStartPayload(source);
     CustomerConfig customerConfig =
         ModelFactory.createNfsStorageConfig(customer, "test_nfs_storage", getBackupBaseDirectory());
     log.info("Customer config here: {}", customerConfig.toString());
