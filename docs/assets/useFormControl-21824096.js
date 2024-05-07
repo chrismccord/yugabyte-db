@@ -1,0 +1,2 @@
+import{r as t}from"./index-f2bd0723.js";function m(e){var o=e.controlled,u=e.default;e.name,e.state;var l=t.useRef(o!==void 0),r=l.current,n=t.useState(u),s=n[0],c=n[1],C=r?o:s,d=t.useCallback(function(f){r||c(f)},[]);return[C,d]}var a=t.createContext();function x(){return t.useContext(a)}const i=a;function F(){return t.useContext(i)}export{i as F,F as a,x as b,m as u};
+//# sourceMappingURL=useFormControl-21824096.js.map

@@ -1,0 +1,2 @@
+import{r as e,R as r}from"./index-f2bd0723.js";function o(n,t){typeof n=="function"?n(t):n&&(n.current=t)}var c=typeof window<"u"?e.useLayoutEffect:e.useEffect;function a(n){var t=e.useRef(n);return c(function(){t.current=n}),e.useCallback(function(){return t.current.apply(void 0,arguments)},[])}function i(n,t){return e.useMemo(function(){return n==null&&t==null?null:function(u){o(n,u),o(t,u)}},[n,t])}const f=r.createContext(null);export{f as T,a,o as s,i as u};
+//# sourceMappingURL=TransitionGroupContext-06ba0be2.js.map
