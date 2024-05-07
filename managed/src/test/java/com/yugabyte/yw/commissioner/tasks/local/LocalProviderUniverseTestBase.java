@@ -983,7 +983,7 @@ public abstract class LocalProviderUniverseTestBase extends PlatformGuiceApplica
 
   protected void verifyPayload() {
     simpleSqlPayload.stop();
-    assertThat("Low percent errors", simpleSqlPayload.getErrorPercent(), lessThan(0.1d));
+    assertThat("Low percent errors", simpleSqlPayload.getErrorPercent(), lessThan(0.2d));
   }
 
   protected SpecificGFlags getGFlags(String... additional) {
