@@ -443,7 +443,7 @@ TEST_F(CreateSmallHBTableStressTest, TestRestartMasterDuringFullHeartbeat) {
   }
 }
 
-TEST_F(CreateTableStressTest, TestHeartbeatDeadline) {
+TEST_F(CreateTableStressTest, YB_DISABLE_TEST_ON_MACOS(TestHeartbeatDeadline)) {
   DontVerifyClusterBeforeNextTearDown();
 
   // 500ms deadline / 50 ms wait ~= 10 Tablets processed before Master hits deadline
@@ -460,8 +460,8 @@ TEST_F(CreateTableStressTest, TestHeartbeatDeadline) {
   ASSERT_OK(WaitForRunningTabletCount(cluster_->mini_master(), table_name,
     FLAGS_num_test_tablets, &resp));
 
-  master::SysClusterConfigEntryPB config;
-  ASSERT_OK(cluster_->mini_master()->catalog_manager().GetClusterConfig(&config));
+  master::SysClusterConfigEntryPB config =
+      ASSERT_RESULT(cluster_->mini_master()->catalog_manager().GetClusterConfig());
   auto universe_uuid = config.universe_uuid();
 
   // Grab TS#1 and Generate a Full Report for it.

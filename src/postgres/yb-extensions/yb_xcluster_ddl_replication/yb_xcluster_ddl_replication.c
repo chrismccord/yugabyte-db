@@ -24,10 +24,26 @@
 
 #include "extension_util.h"
 #include "json_util.h"
+#include "source_ddl_end_handler.h"
 
 PG_MODULE_MAGIC;
 
 /* Extension variables. */
+typedef enum ClusterReplicationRole
+{
+	REPLICATION_ROLE_DISABLED,
+	REPLICATION_ROLE_SOURCE,
+	REPLICATION_ROLE_TARGET,
+	REPLICATION_ROLE_BIDIRECTIONAL,
+} ClusterReplicationRole;
+
+static const struct config_enum_entry replication_roles[] = {
+	{"DISABLED", REPLICATION_ROLE_DISABLED, false},
+	{"SOURCE", REPLICATION_ROLE_SOURCE, false},
+	{"TARGET", REPLICATION_ROLE_TARGET, false},
+	{"BIDIRECTIONAL", REPLICATION_ROLE_BIDIRECTIONAL, /* hidden */ true},
+	{NULL, 0, false}};
+
 static int ReplicationRole = REPLICATION_ROLE_DISABLED;
 static bool EnableManualDDLReplication = false;
 char *DDLQueuePrimaryKeyStartTime = NULL;
@@ -134,53 +150,39 @@ InsertIntoDDLQueue(Jsonb *yb_data)
 	InsertIntoTable(DDL_QUEUE_TABLE_NAME, epoch_time, random(), yb_data);
 }
 
-/* Returns whether or not to continue with processing the DDL. */
-bool
-HandleCreateTable()
+/*
+ * Reports an error if the query string has multiple commands in it, or a
+ * command tag that doesn't match up with the one captured from the event
+ * trigger.
+ *
+ * Some clients can send multiple commands together as one single query string.
+ * This can cause issues for this extension:
+ * - If the query has a mix of DDL and DML commands, then we'd end up
+ *   replicating those rows twice.
+ * - Even if the query has multiple DDLs in it, it is simpler to handle these
+ *   individually. Eg. we may need to add additional modifications for each
+ *   individual DDL (eg setting oids).
+ */
+void
+DisallowMultiStatementQueries(const char *command_tag)
 {
-	// TODO(jhe): Is there an alternate method to get this info?
-	// TODO(jhe): Can we use ddl_deparse on command to handle each separately?
-	StringInfoData query_buf;
-	initStringInfo(&query_buf);
-	appendStringInfo(
-		&query_buf, "SELECT objid FROM pg_catalog.pg_event_trigger_ddl_commands()");
-	int exec_res = SPI_execute(query_buf.data, true, 0);
-	if (exec_res != SPI_OK_SELECT)
-		elog(ERROR, "SPI_exec failed (error %d): %s", exec_res, query_buf.data);
-
-	TupleDesc spiTupDesc = SPI_tuptable->tupdesc;
-	bool found_yb_relation = false;
-	for (int row = 0; row < SPI_processed; row++)
+	List *parse_tree = pg_parse_query(debug_query_string);
+	ListCell *lc;
+	int count = 0;
+	foreach (lc, parse_tree)
 	{
-		HeapTuple spiTuple = SPI_tuptable->vals[row];
-		bool is_null;
-		Oid objid =
-			DatumGetObjectId(SPI_getbinval(spiTuple, spiTupDesc, 1, &is_null));
+		++count;
+		RawStmt *stmt = (RawStmt *) lfirst(lc);
+		const char *stmt_command_tag = CreateCommandTag(stmt->stmt);
 
-		Relation rel = RelationIdGetRelation(objid);
-		// Ignore temporary tables and primary indexes (same as main table).
-		if (!IsYBBackedRelation(rel) ||
-			(rel->rd_rel->relkind == RELKIND_INDEX && rel->rd_index->indisprimary))
-		{
-			RelationClose(rel);
-			continue;
-		}
-
-		// Also need to check colocated until that is supported.
-		YbTableProperties table_props = YbGetTableProperties(rel);
-		bool is_colocated = table_props->is_colocated;
-		RelationClose(rel);
-		if (is_colocated)
-			ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							errmsg("Colocated objects are not yet supported by "
-									"yb_xcluster_ddl_replication")));
-
-		found_yb_relation = true;
+		if (count > 1 || command_tag != stmt_command_tag)
+			elog(ERROR,
+				 "Database is replicating DDLs for xCluster. In this mode only "
+				 "a single DDL command is allowed in the query string.\n"
+				 "Please run the commands one at a time.\n"
+				 " Full query string: %s",
+				 debug_query_string);
 	}
-
-	// If all the objects are temporary, then stop processing early as we don't
-	// need to replicate this ddl query at all.
-	return found_yb_relation;
 }
 
 void
@@ -219,17 +221,12 @@ HandleSourceDDLEnd(EventTriggerData *trig_data)
 	{
 		(void) AddBoolJsonEntry(state, "manual_replication", true);
 	}
-	else if (strcmp(trig_data->tag, "CREATE TABLE") == 0)
-	{
-		if (!HandleCreateTable())
-			goto exit;
-	}
 	else
 	{
-		elog(ERROR,
-			"Unsupported DDL: %s\nTo manually replicate, run DDL with "
-			"SET yb_xcluster_ddl_replication.enable_manual_ddl_replication = true",
-			trig_data->tag);
+		DisallowMultiStatementQueries(trig_data->tag);
+		bool should_replicate_ddl = ProcessSourceEventTriggerDDLCommands(state);
+		if (!should_replicate_ddl)
+			goto exit;
 	}
 
 	// Construct the jsonb and insert completed row into ddl_queue table.
@@ -308,9 +305,9 @@ handle_ddl_end(PG_FUNCTION_ARGS)
 static bool
 IsInIgnoreList(EventTriggerData *trig_data)
 {
-	if (strcmp(trig_data->tag, "CREATE EXTENSION") == 0 ||
-		strcmp(trig_data->tag, "DROP EXTENSION") == 0 ||
-		strcmp(trig_data->tag, "ALTER EXTENSION") == 0)
+	if (strncmp(trig_data->tag, "CREATE EXTENSION", 16) == 0 ||
+		strncmp(trig_data->tag, "DROP EXTENSION", 14) == 0 ||
+		strncmp(trig_data->tag, "ALTER EXTENSION", 15) == 0)
 	{
 		return true;
 	}

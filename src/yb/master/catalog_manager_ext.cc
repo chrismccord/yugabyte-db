@@ -2644,17 +2644,6 @@ const docdb::DocReadContext& CatalogManager::doc_read_context() {
   return sys_catalog()->doc_read_context();
 }
 
-TabletInfos CatalogManager::GetTabletInfos(const std::vector<TabletId>& ids) {
-  TabletInfos result;
-  result.reserve(ids.size());
-  SharedLock lock(mutex_);
-  for (const auto& id : ids) {
-    auto it = tablet_map_->find(id);
-    result.push_back(it != tablet_map_->end() ? it->second : nullptr);
-  }
-  return result;
-}
-
 Result<SchemaVersion> CatalogManager::GetTableSchemaVersion(const TableId& table_id) {
   auto table = VERIFY_RESULT(FindTableById(table_id));
   auto lock = table->LockForRead();
@@ -3417,8 +3406,7 @@ bool ShouldResendRegistry(
 
 Status CatalogManager::FillHeartbeatResponse(const TSHeartbeatRequestPB* req,
                                              TSHeartbeatResponsePB* resp) {
-  SysClusterConfigEntryPB cluster_config;
-  RETURN_NOT_OK(GetClusterConfig(&cluster_config));
+  SysClusterConfigEntryPB cluster_config = VERIFY_RESULT(GetClusterConfig());
   RETURN_NOT_OK(FillHeartbeatResponseEncryption(cluster_config, req, resp));
   RETURN_NOT_OK(snapshot_coordinator_.FillHeartbeatResponse(resp));
   return FillHeartbeatResponseCDC(cluster_config, req, resp);
