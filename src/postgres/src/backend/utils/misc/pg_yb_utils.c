@@ -889,7 +889,6 @@ YBInitPostgresBackend(
 		callbacks.PgstatReportWaitStart = &yb_pgstat_report_wait_start;
 		YBCPgAshConfig ash_config;
 		ash_config.metadata = &MyProc->yb_ash_metadata;
-		ash_config.is_metadata_set = &MyProc->yb_is_ash_metadata_set;
 		ash_config.yb_enable_ash = &yb_enable_ash;
 		IpAddressToBytes(&ash_config);
 		YBCInitPgGate(type_table, count, callbacks, session_id, &ash_config);
@@ -1339,6 +1338,7 @@ bool yb_prefer_bnl = false;
 bool yb_explain_hide_non_deterministic_fields = false;
 bool yb_enable_saop_pushdown = true;
 int yb_toast_catcache_threshold = -1;
+int yb_parallel_range_size = 1024 * 1024;
 
 //------------------------------------------------------------------------------
 // YB Debug utils.
