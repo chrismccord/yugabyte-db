@@ -43,6 +43,7 @@ import com.yugabyte.yw.models.helpers.provider.LocalCloudInfo;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -372,14 +373,14 @@ public class LocalNodeManager {
             startProcessForNode(userIntent, process, nodeInfo);
             break;
           case "stop":
-            stopProcessForNode(process, nodeInfo);
+            stopProcessForNode(userIntent, process, nodeInfo);
             break;
         }
         break;
       case Destroy:
         for (UniverseTaskBase.ServerType serverType :
             nodeInfo.processMap.keySet().toArray(new UniverseTaskBase.ServerType[0])) {
-          stopProcessForNode(serverType, nodeInfo);
+          stopProcessForNode(userIntent, serverType, nodeInfo);
         }
         nodesByNameMap.remove(nodeInfo.name);
         response = ShellResponse.create(ERROR_CODE_SUCCESS, "Success!");
@@ -678,14 +679,80 @@ public class LocalNodeManager {
     }
   }
 
-  private void stopProcessForNode(UniverseTaskBase.ServerType serverType, NodeInfo nodeInfo) {
+  private void stopProcessForNode(UniverseDefinitionTaskParams.UserIntent userIntent, UniverseTaskBase.ServerType serverType, NodeInfo nodeInfo) {
     Process process = nodeInfo.processMap.remove(serverType);
     if (process == null) {
       throw new IllegalStateException("No process of type " + serverType + " for " + nodeInfo.name);
     }
     log.debug("Killing process {}", process.pid());
+    if (serverType == UniverseTaskBase.ServerType.TSERVER) {
+      // kill the postmaster pid's as well for the nodes.
+      String filePath = getNodeFSRoot(userIntent, nodeInfo) + "pg_data/postmaster.pid";
+      List<String> postmasterPid = readProcessIdsFromFile(filePath);
+
+      if (postmasterPid != null && !postmasterPid.isEmpty()) {
+        for (String pid : postmasterPid) {
+            if (pid.matches("^\\d+$")) {
+              List<String> pgPids = new ArrayList<>();
+              try {
+                ProcessBuilder psProcessBuilder = new ProcessBuilder("ps", "--no-headers", "-p", pid, "--ppid", pid, "-o", "pid:1");
+                Process psProcess = psProcessBuilder.start();
+
+                BufferedReader psReader = new BufferedReader(new InputStreamReader(psProcess.getInputStream()));
+                String line;
+                while ((line = psReader.readLine()) != null) {
+                    pgPids.add(line.trim());
+                }
+
+                int psExitCode = psProcess.waitFor();
+
+                if (psExitCode == 0 && !pgPids.isEmpty()) {
+                    for (String pgPid : pgPids) {
+                        if (pgPid.matches("^\\d+$")) {
+                            log.info("Killing postgres PID: {} ...", pgPid);
+                            ProcessBuilder killProcessBuilder = new ProcessBuilder("kill", "-KILL", pgPid);
+                            Process killProcess = killProcessBuilder.start();
+                            int killExitCode = killProcess.waitFor();
+                            if (killExitCode != 0) {
+                                log.error("Failed to kill process with PID: {}", pgPid);
+                            }
+                        } else {
+                            log.error("Found invalid Postgres PID: {}. Skipped.", pgPid);
+                        }
+                    }
+                }
+              } catch (IOException | InterruptedException e) {
+                  log.error("pg process deletion failed with: {}", e.getMessage());
+              }
+            } else {
+              log.error("Invalid process ID: {}", pid);
+            }
+        }
+      } else {
+          log.info("No valid process IDs found in the file.");
+      }
+    }
     process.destroy();
   }
+
+  private static List<String> readProcessIdsFromFile(String filePath) {
+    List<String> processIds = new ArrayList<>();
+    File file = new File(filePath);
+    if (file.exists()) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                processIds.add(line.trim());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    } else {
+       log.error("{}, does not exist.", filePath);
+    }
+
+    return processIds;
+}
 
   private void writeGFlagsToFile(
       UniverseDefinitionTaskParams.UserIntent userIntent,
