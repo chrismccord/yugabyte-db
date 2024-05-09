@@ -105,6 +105,7 @@ public class LocalNodeManager {
   private Set<String> usedIPs = Sets.newConcurrentHashSet();
 
   private Map<String, NodeInfo> nodesByNameMap = new ConcurrentHashMap<>();
+  private Map<String, String> nodeFSByNameMap = new ConcurrentHashMap<>();
 
   private SpecificGFlags additionalGFlags;
 
@@ -128,18 +129,76 @@ public class LocalNodeManager {
 
   // Temporary method.
   public void shutdown() {
-    nodesByNameMap.values().stream()
-        .flatMap(n -> n.processMap.values().stream())
-        .forEach(
-            process -> {
-              try {
-                log.debug("Destroying {}", process.pid());
-                killProcess(process.pid());
-              } catch (Exception e) {
-                log.error("Failed to destroy process " + process, e);
-              }
-            });
+    nodesByNameMap.forEach(
+        (name, node) -> {
+          Map<UniverseTaskBase.ServerType, Process> processMap = node.processMap;
+          processMap.forEach(
+              (serverType, process) -> {
+                try {
+                  if (serverType == UniverseTaskBase.ServerType.TSERVER) {
+                    String baseDir = nodeFSByNameMap.get(name);
+                    killPostMasterProcess(baseDir);
+                  }
+                  log.debug("Destroying {}", process.pid());
+                  killProcess(process.pid());
+                } catch (Exception e) {
+                  log.error("Failed to destroy process " + process, e);
+                }
+              });
+        });
+
     nodesByNameMap.clear();
+    nodeFSByNameMap.clear();
+  }
+
+  private void killPostMasterProcess(String path) {
+    // kill the postmaster pid's as well for the nodes.
+    String filePath = path + "pg_data/postmaster.pid";
+    List<String> postmasterPid = readProcessIdsFromFile(filePath);
+
+    if (postmasterPid != null && !postmasterPid.isEmpty()) {
+      for (String pid : postmasterPid) {
+        if (pid.matches("^\\d+$")) {
+          List<String> pgPids = new ArrayList<>();
+          try {
+            ProcessBuilder psProcessBuilder =
+                new ProcessBuilder("ps", "--no-headers", "-p", pid, "--ppid", pid, "-o", "pid:1");
+            Process psProcess = psProcessBuilder.start();
+
+            BufferedReader psReader =
+                new BufferedReader(new InputStreamReader(psProcess.getInputStream()));
+            String line;
+            while ((line = psReader.readLine()) != null) {
+              pgPids.add(line.trim());
+            }
+
+            int psExitCode = psProcess.waitFor();
+
+            if (psExitCode == 0 && !pgPids.isEmpty()) {
+              for (String pgPid : pgPids) {
+                if (pgPid.matches("^\\d+$")) {
+                  log.info("Killing postgres PID: {} ...", pgPid);
+                  ProcessBuilder killProcessBuilder = new ProcessBuilder("kill", "-KILL", pgPid);
+                  Process killProcess = killProcessBuilder.start();
+                  int killExitCode = killProcess.waitFor();
+                  if (killExitCode != 0) {
+                    log.error("Failed to kill process with PID: {}", pgPid);
+                  }
+                } else {
+                  log.error("Found invalid Postgres PID: {}. Skipped.", pgPid);
+                }
+              }
+            }
+          } catch (IOException | InterruptedException e) {
+            log.error("pg process deletion failed with: {}", e.getMessage());
+          }
+        } else {
+          log.error("Invalid process ID: {}", pid);
+        }
+      }
+    } else {
+      log.info("No valid process IDs found in the file.");
+    }
   }
 
   private void killProcess(long pid) throws IOException, InterruptedException {
@@ -308,6 +367,7 @@ public class LocalNodeManager {
       case Create:
         NodeInfo newNodeInfo = new NodeInfo(nodeDetails, nodeTaskParam);
         nodesByNameMap.put(newNodeInfo.name, newNodeInfo);
+        nodeFSByNameMap.put(newNodeInfo.name, getNodeFSRoot(userIntent, newNodeInfo));
         response = successResponse(convertNodeInfoToJson(newNodeInfo));
         break;
       case Provision:
@@ -373,14 +433,14 @@ public class LocalNodeManager {
             startProcessForNode(userIntent, process, nodeInfo);
             break;
           case "stop":
-            stopProcessForNode(userIntent, process, nodeInfo);
+            stopProcessForNode(userIntent, process, nodeInfo, false);
             break;
         }
         break;
       case Destroy:
         for (UniverseTaskBase.ServerType serverType :
             nodeInfo.processMap.keySet().toArray(new UniverseTaskBase.ServerType[0])) {
-          stopProcessForNode(userIntent, serverType, nodeInfo);
+          stopProcessForNode(userIntent, serverType, nodeInfo, true);
         }
         nodesByNameMap.remove(nodeInfo.name);
         response = ShellResponse.create(ERROR_CODE_SUCCESS, "Success!");
@@ -682,61 +742,13 @@ public class LocalNodeManager {
   private void stopProcessForNode(
       UniverseDefinitionTaskParams.UserIntent userIntent,
       UniverseTaskBase.ServerType serverType,
-      NodeInfo nodeInfo) {
+      NodeInfo nodeInfo,
+      boolean isDestroy) {
     Process process = nodeInfo.processMap.remove(serverType);
     if (process == null) {
       throw new IllegalStateException("No process of type " + serverType + " for " + nodeInfo.name);
     }
     log.debug("Killing process {}", process.pid());
-    if (serverType == UniverseTaskBase.ServerType.TSERVER) {
-      // kill the postmaster pid's as well for the nodes.
-      String filePath = getNodeFSRoot(userIntent, nodeInfo) + "pg_data/postmaster.pid";
-      List<String> postmasterPid = readProcessIdsFromFile(filePath);
-
-      if (postmasterPid != null && !postmasterPid.isEmpty()) {
-        for (String pid : postmasterPid) {
-          if (pid.matches("^\\d+$")) {
-            List<String> pgPids = new ArrayList<>();
-            try {
-              ProcessBuilder psProcessBuilder =
-                  new ProcessBuilder("ps", "--no-headers", "-p", pid, "--ppid", pid, "-o", "pid:1");
-              Process psProcess = psProcessBuilder.start();
-
-              BufferedReader psReader =
-                  new BufferedReader(new InputStreamReader(psProcess.getInputStream()));
-              String line;
-              while ((line = psReader.readLine()) != null) {
-                pgPids.add(line.trim());
-              }
-
-              int psExitCode = psProcess.waitFor();
-
-              if (psExitCode == 0 && !pgPids.isEmpty()) {
-                for (String pgPid : pgPids) {
-                  if (pgPid.matches("^\\d+$")) {
-                    log.info("Killing postgres PID: {} ...", pgPid);
-                    ProcessBuilder killProcessBuilder = new ProcessBuilder("kill", "-KILL", pgPid);
-                    Process killProcess = killProcessBuilder.start();
-                    int killExitCode = killProcess.waitFor();
-                    if (killExitCode != 0) {
-                      log.error("Failed to kill process with PID: {}", pgPid);
-                    }
-                  } else {
-                    log.error("Found invalid Postgres PID: {}. Skipped.", pgPid);
-                  }
-                }
-              }
-            } catch (IOException | InterruptedException e) {
-              log.error("pg process deletion failed with: {}", e.getMessage());
-            }
-          } else {
-            log.error("Invalid process ID: {}", pid);
-          }
-        }
-      } else {
-        log.info("No valid process IDs found in the file.");
-      }
-    }
     process.destroy();
   }
 
