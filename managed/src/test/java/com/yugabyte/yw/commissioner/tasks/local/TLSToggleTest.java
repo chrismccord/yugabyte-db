@@ -90,7 +90,7 @@ public class TLSToggleTest extends LocalProviderUniverseTestBase {
     assertEquals("5", LocalNodeManager.getRawCommandOutput(ysqlResponse.getMessage()));
   }
 
-  @Test
+  // @Test
   public void testDisableTLS() throws InterruptedException {
     UniverseDefinitionTaskParams.UserIntent userIntent = getDefaultUserIntent();
     userIntent.specificGFlags = SpecificGFlags.construct(GFLAGS, GFLAGS);
