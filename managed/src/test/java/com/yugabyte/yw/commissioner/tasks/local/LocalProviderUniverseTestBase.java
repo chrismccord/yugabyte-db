@@ -413,7 +413,7 @@ public abstract class LocalProviderUniverseTestBase extends PlatformGuiceApplica
     File curDir = new File(baseDirFile, subDir);
     if (!baseDirFile.exists() || !curDir.exists()) {
       curDir.mkdirs();
-      if (!KEEP_FAILED_UNIVERSE) {
+      if (!KEEP_FAILED_UNIVERSE && !KEEP_UNIVERSE_ALWAYS) {
         curDir.deleteOnExit();
       }
     }

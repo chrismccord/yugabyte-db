@@ -645,6 +645,8 @@ yb_get_batched_index_paths(PlannerInfo *root, RelOptInfo *rel,
 
 	bool batched_paths_added = false;
 
+	Relids total_relids = NULL;
+
 	for (size_t i = 0; i < INDEX_MAX_KEYS && clauses->nonempty; i++)
 	{
 		List *colclauses = clauses->indexclauses[i];
@@ -689,16 +691,18 @@ yb_get_batched_index_paths(PlannerInfo *root, RelOptInfo *rel,
 				unbatchablerelids = bms_union(unbatchablerelids,
 											  rinfo->clause_relids);
 			}
+
+			total_relids = bms_union(total_relids, outer_relids);
 		}
 	}
+
+	total_relids = bms_union(total_relids, inner_relids);
 
 	batchedrelids = bms_del_member(batchedrelids,
 								   index->rel->relid);
 	batchedrelids = bms_difference(batchedrelids, unbatchablerelids);
 
 	/* See if we have any unbatchable filters. */
-	Relids batched_and_inner_relids =
-		bms_union(batchedrelids, index->rel->relids);
 	List *pclauses = NIL;
 	if (!bms_is_empty(batchedrelids)) {
 		pclauses = generate_join_implied_equalities(
@@ -707,11 +711,16 @@ yb_get_batched_index_paths(PlannerInfo *root, RelOptInfo *rel,
 			batchedrelids,
 			rel);
 
+		/*
+		 * Anything in joininfo that can be pushed down to this scan
+		 * will end up as a qpqual. Add these to the list of clauses
+		 * to check for batchability.
+		 */
 		foreach(lc, rel->joininfo)
 		{
 			RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
 			if (join_clause_is_movable_into(rinfo, rel->relids,
-											batched_and_inner_relids))
+											total_relids))
 				pclauses = lappend(pclauses, rinfo);
 		}
 	}
@@ -774,7 +783,7 @@ yb_get_batched_index_paths(PlannerInfo *root, RelOptInfo *rel,
 
 	bms_free(batched_inner_attnos);
 	bms_free(pclause_batched_inner_attnos);
-	bms_free(batched_and_inner_relids);
+	bms_free(total_relids);
 
 	unbatchablerelids = bms_del_member(unbatchablerelids,
 									   index->rel->relid);
@@ -1931,8 +1940,18 @@ choose_bitmap_and(PlannerInfo *root, RelOptInfo *rel, List *paths)
 			Selectivity nselec;
 			Selectivity oselec;
 
-			cost_bitmap_tree_node(pathinfo->path, &ncost, &nselec);
-			cost_bitmap_tree_node(pathinfoarray[i]->path, &ocost, &oselec);
+			if (IsYugaByteEnabled() && yb_enable_base_scans_cost_model &&
+				pathinfo->path->parent->is_yb_relation)
+			{
+				yb_cost_bitmap_tree_node(pathinfo->path, &ncost, &nselec, NULL);
+				yb_cost_bitmap_tree_node(pathinfoarray[i]->path, &ocost,
+										 &oselec, NULL);
+			}
+			else
+			{
+				cost_bitmap_tree_node(pathinfo->path, &ncost, &nselec);
+				cost_bitmap_tree_node(pathinfoarray[i]->path, &ocost, &oselec);
+			}
 			if (ncost < ocost)
 				pathinfoarray[i] = pathinfo;
 		}
@@ -1969,7 +1988,7 @@ choose_bitmap_and(PlannerInfo *root, RelOptInfo *rel, List *paths)
 
 		pathinfo = pathinfoarray[i];
 		paths = list_make1(pathinfo->path);
-		if (rel->is_yb_relation)
+		if (rel->is_yb_relation && yb_enable_base_scans_cost_model)
 			costsofar = yb_bitmap_scan_cost_est(root, rel, pathinfo->path);
 		else
 			costsofar = bitmap_scan_cost_est(root, rel, pathinfo->path);
@@ -2055,8 +2074,16 @@ path_usage_comparator(const void *a, const void *b)
 	Selectivity aselec;
 	Selectivity bselec;
 
-	cost_bitmap_tree_node(pa->path, &acost, &aselec);
-	cost_bitmap_tree_node(pb->path, &bcost, &bselec);
+	if (IsYugaByteEnabled() && yb_enable_base_scans_cost_model &&
+		pa->path->parent->is_yb_relation)
+	{
+		yb_cost_bitmap_tree_node(pa->path, &acost, &aselec, NULL);
+		yb_cost_bitmap_tree_node(pb->path, &bcost, &bselec, NULL);
+	}
+	else {
+		cost_bitmap_tree_node(pa->path, &acost, &aselec);
+		cost_bitmap_tree_node(pb->path, &bcost, &bselec);
+	}
 
 	/*
 	 * If costs are the same, sort by selectivity.
@@ -2134,7 +2161,7 @@ yb_bitmap_scan_cost_est(PlannerInfo *root, RelOptInfo *rel, Path *ipath)
 
 	if (yb_enable_bitmapscan)
 		/* Now we can do cost_yb_bitmap_table_scan */
-		cost_yb_bitmap_table_scan(&bpath.path, root, rel,
+		yb_cost_bitmap_table_scan(&bpath.path, root, rel,
 								  bpath.path.param_info,
 								  ipath,
 								  get_loop_count(root, rel->relid,
@@ -2158,7 +2185,7 @@ bitmap_and_cost_est(PlannerInfo *root, RelOptInfo *rel, List *paths)
 	 */
 	apath = create_bitmap_and_path(root, rel, paths);
 
-	if (rel->is_yb_relation)
+	if (rel->is_yb_relation && yb_enable_base_scans_cost_model)
 		return yb_bitmap_scan_cost_est(root, rel, (Path *) apath);
 	else
 		return bitmap_scan_cost_est(root, rel, (Path *) apath);

@@ -114,6 +114,9 @@ YBCStatus YBCGetHeapConsumption(YbTcmallocStats *desc);
 // Validate the JWT based on the options including the identity matching based on the identity map.
 YBCStatus YBCValidateJWT(const char *token, const YBCPgJwtAuthOptions *options);
 
+// Is this node acting as the pg_cron leader?
+bool YBCIsCronLeader();
+
 //--------------------------------------------------------------------------------------------------
 // YB Bitmap Scan Operations
 //--------------------------------------------------------------------------------------------------
@@ -374,7 +377,7 @@ YBCStatus YBCGetSplitPoints(YBCPgTableDesc table_desc,
                             const YBCPgTypeEntity **type_entities,
                             YBCPgTypeAttrs *type_attrs_arr,
                             YBCPgSplitDatum *split_points,
-                            bool *has_null);
+                            bool *has_null, bool *has_gin_null);
 
 // INDEX -------------------------------------------------------------------------------------------
 // Create and drop index "database_name.schema_name.index_name()".
@@ -659,8 +662,8 @@ YBCStatus YBCPgRestartTransaction();
 YBCStatus YBCPgResetTransactionReadPoint();
 YBCStatus YBCPgRestartReadPoint();
 bool YBCIsRestartReadPointRequested();
-YBCStatus YBCPgCommitTransaction();
-YBCStatus YBCPgAbortTransaction();
+YBCStatus YBCPgCommitPlainTransaction();
+YBCStatus YBCPgAbortPlainTransaction();
 YBCStatus YBCPgSetTransactionIsolationLevel(int isolation);
 YBCStatus YBCPgSetTransactionReadOnly(bool read_only);
 YBCStatus YBCPgSetTransactionDeferrable(bool deferrable);

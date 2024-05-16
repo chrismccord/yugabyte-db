@@ -71,7 +71,6 @@
 | "Bootstrap producer timeout" | "yb.xcluster.bootstrap_producer_timeout_ms" | "GLOBAL" | "Bootstrap producer timeout in milliseconds" | "Integer" |
 | "YBC socket read timeout" | "ybc.timeout.socket_read_timeout_ms" | "GLOBAL" | "YBC client socket read timeout in milliseconds" | "Integer" |
 | "YBC operation timeout" | "ybc.timeout.operation_timeout_ms" | "GLOBAL" | "YBC client timeout in milliseconds for operations" | "Integer" |
-| "Enable YBA's custom CA trust-store" | "yb.customCATrustStore.enabled" | "GLOBAL" | "Enable YBA's custom CA trust-store" | "Boolean" |
 | "Server certificate verification for S3 backup/restore" | "yb.certVerifyBackupRestore.is_enforced" | "GLOBAL" | "Enforce server certificate verification during S3 backup/restore" | "Boolean" |
 | "Javax Net SSL TrustStore" | "yb.wellKnownCA.trustStore.path" | "GLOBAL" | "Java property javax.net.ssl.trustStore" | "String" |
 | "Javax Net SSL TrustStore Type" | "yb.wellKnownCA.trustStore.type" | "GLOBAL" | "Java property javax.net.ssl.trustStoreType" | "String" |
@@ -126,6 +125,7 @@
 | "YBC poll upgrade result Sleep time" | "ybc.upgrade.poll_result_sleep_ms" | "GLOBAL" | "YBC poll upgrade result sleep time." | "Long" |
 | "HA Shutdown Level" | "yb.ha.shutdown_level" | "GLOBAL" | "When to shutdown - 0 for never, 1 for promotion, 2 for promotion and demotion" | "Integer" |
 | "OIDC Refresh Access Token Interval" | "yb.security.oidcRefreshTokenInterval" | "GLOBAL" | "If configured, YBA will refresh the access token at the specified duration, defaulted to 5 minutes." | "Duration" |
+| "Allow Editing of in-use Linux Versions" | "yb.edit_provider.new.allow_used_bundle_edit" | "GLOBAL" | "Caution: If enabled, YBA will blindly allow editing the name/AMI associated with the bundle, without propagating it to the in-use Universes" | "Boolean" |
 | "Clock Skew" | "yb.alert.max_clock_skew_ms" | "UNIVERSE" | "Default threshold for Clock Skew alert" | "Duration" |
 | "Health Log Output" | "yb.health.logOutput" | "UNIVERSE" | "It determines whether to log the output of the node health check script to the console" | "Boolean" |
 | "Node Checkout Time" | "yb.health.nodeCheckTimeoutSec" | "UNIVERSE" | "The timeout (in seconds) for node check operation as part of universe health check" | "Integer" |

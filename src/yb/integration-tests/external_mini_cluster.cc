@@ -101,6 +101,7 @@
 #include "yb/util/test_util.h"
 #include "yb/util/tsan_util.h"
 #include "yb/util/flags.h"
+#include "yb/yql/pgwrapper/libpq_utils.h"
 
 #define YB_FORWARD_FLAG(flag_name) \
   "--" BOOST_PP_STRINGIZE(flag_name) "="s + FlagToString(BOOST_PP_CAT(FLAGS_, flag_name))
@@ -2089,6 +2090,18 @@ Status ExternalMiniCluster::WaitForLoadBalancerToBecomeIdle(
   return Status::OK();
 }
 
+Result<pgwrapper::PGConn> ExternalMiniCluster::ConnectToDB(
+    const std::string& db_name, std::optional<size_t> node_index, bool simple_query_protocol) {
+  if (!node_index) {
+    node_index = RandomUniformInt<size_t>(0, num_tablet_servers() - 1);
+  }
+
+  auto* ts = tablet_server(*node_index);
+  return pgwrapper::PGConnBuilder(
+             {.host = ts->bind_host(), .port = ts->pgsql_rpc_port(), .dbname = db_name})
+      .Connect(simple_query_protocol);
+}
+
 //------------------------------------------------------------
 // ExternalDaemon
 //------------------------------------------------------------
@@ -3018,8 +3031,7 @@ const std::string& FlagToString(const std::string& flag) {
 void StartSecure(
     std::unique_ptr<ExternalMiniCluster>* cluster,
     std::unique_ptr<rpc::SecureContext>* secure_context,
-    std::unique_ptr<rpc::Messenger>* messenger,
-    const std::vector<std::string>& master_flags) {
+    std::unique_ptr<rpc::Messenger>* messenger) {
   rpc::MessengerBuilder messenger_builder("test_client");
   *secure_context = ASSERT_RESULT(rpc::SetupSecureContext(
       /*root_dir=*/"", "127.0.0.100", rpc::SecureContextType::kInternal, &messenger_builder));
@@ -3035,8 +3047,6 @@ void StartSecure(
       YB_FORWARD_FLAG(use_node_to_node_encryption),
   };
   opts.extra_master_flags = opts.extra_tserver_flags;
-  opts.extra_master_flags.insert(
-      opts.extra_master_flags.end(), master_flags.begin(), master_flags.end());
   opts.num_tablet_servers = 3;
   opts.use_even_ips = true;
   *cluster = std::make_unique<ExternalMiniCluster>(opts);

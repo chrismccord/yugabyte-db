@@ -369,14 +369,6 @@ public class GlobalConfKeys extends RuntimeConfigKeysModule {
           "YBC client timeout in milliseconds for operations",
           ConfDataType.IntegerType,
           ImmutableList.of(ConfKeyTags.PUBLIC));
-  public static final ConfKeyInfo<Boolean> customCAStoreEnabled =
-      new ConfKeyInfo<>(
-          "yb.customCATrustStore.enabled",
-          ScopeType.GLOBAL,
-          "Enable YBA's custom CA trust-store",
-          "Enable YBA's custom CA trust-store",
-          ConfDataType.BooleanType,
-          ImmutableList.of(ConfKeyTags.PUBLIC));
   public static final ConfKeyInfo<Boolean> enforceCertVerificationBackupRestore =
       new ConfKeyInfo<>(
           "yb.certVerifyBackupRestore.is_enforced",
@@ -1280,14 +1272,6 @@ public class GlobalConfKeys extends RuntimeConfigKeysModule {
           "Enable the new releases design",
           ConfDataType.BooleanType,
           ImmutableList.of(ConfKeyTags.INTERNAL));
-  public static final ConfKeyInfo<Boolean> enableTroubleshooting =
-      new ConfKeyInfo<>(
-          "yb.ui.feature_flags.enable_troubleshooting",
-          ScopeType.GLOBAL,
-          "Enables Troubleshooting for the Universe",
-          "Enables Troubleshooting for the Universe",
-          ConfDataType.BooleanType,
-          ImmutableList.of(ConfKeyTags.INTERNAL));
   public static final ConfKeyInfo<Boolean> enableAzureProviderValidation =
       new ConfKeyInfo<>(
           "yb.provider.azure_provider_validation",
@@ -1336,5 +1320,14 @@ public class GlobalConfKeys extends RuntimeConfigKeysModule {
           "If configured, YBA will refresh the access token at the specified duration, defaulted to"
               + " 5 minutes.",
           ConfDataType.DurationType,
+          ImmutableList.of(ConfKeyTags.PUBLIC));
+  public static final ConfKeyInfo<Boolean> allowUsedBundleEdit =
+      new ConfKeyInfo<>(
+          "yb.edit_provider.new.allow_used_bundle_edit",
+          ScopeType.GLOBAL,
+          "Allow Editing of in-use Linux Versions",
+          "Caution: If enabled, YBA will blindly allow editing the name/AMI associated with the"
+              + " bundle, without propagating it to the in-use Universes",
+          ConfDataType.BooleanType,
           ImmutableList.of(ConfKeyTags.PUBLIC));
 }

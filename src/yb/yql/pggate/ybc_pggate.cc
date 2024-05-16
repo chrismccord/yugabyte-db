@@ -229,7 +229,7 @@ Status GetSplitPoints(YBCPgTableDesc table_desc,
                       const YBCPgTypeEntity **type_entities,
                       YBCPgTypeAttrs *type_attrs_arr,
                       YBCPgSplitDatum *split_datums,
-                      bool *has_null) {
+                      bool *has_null, bool *has_gin_null) {
   CHECK(table_desc->IsRangePartitioned());
   const Schema& schema = table_desc->schema();
   size_t num_range_key_columns = table_desc->num_range_key_columns();
@@ -254,6 +254,9 @@ Status GetSplitPoints(YBCPgTableDesc table_desc,
       } else if (entry_type == dockv::KeyEntryType::kHighest) {
         column_bounds.consume_byte();
         split_datums[split_datum_idx].datum_kind = YB_YQL_DATUM_LIMIT_MAX;
+      } else if (entry_type == dockv::KeyEntryType::kGinNull) {
+        *has_gin_null = true;
+        return Status::OK();
       } else {
         table_row.Reset();
         RETURN_NOT_OK(dockv::PgKeyDecoder::DecodeEntry(
@@ -631,7 +634,7 @@ size_t YBCBitmapUnionSet(SliceSet sa, ConstSliceSet sb) {
     if (a->insert(slice).second == false)
       FreeSlice(slice);
     else
-      new_bytes += slice.size();
+      new_bytes += slice.size() + sizeof(slice);
   }
   delete b;
 
@@ -672,7 +675,7 @@ size_t YBCBitmapInsertYbctidsIntoSet(SliceSet set, ConstSliceVector vec) {
 
   for (auto ybctid : *v) {
     if (s->insert(ybctid).second) // successfully inserted
-      bytes += ybctid.size();
+      bytes += ybctid.size() + sizeof(ybctid);
     else
       FreeSlice(ybctid);
   }
@@ -1087,9 +1090,9 @@ YBCStatus YBCGetSplitPoints(YBCPgTableDesc table_desc,
                             const YBCPgTypeEntity **type_entities,
                             YBCPgTypeAttrs *type_attrs_arr,
                             YBCPgSplitDatum *split_datums,
-                            bool *has_null) {
+                            bool *has_null, bool *has_gin_null) {
   return ToYBCStatus(GetSplitPoints(table_desc, type_entities, type_attrs_arr, split_datums,
-                                    has_null));
+                                    has_null, has_gin_null));
 }
 
 YBCStatus YBCPgTableExists(const YBCPgOid database_oid,
@@ -1689,12 +1692,12 @@ bool YBCIsRestartReadPointRequested() {
   return pgapi->IsRestartReadPointRequested();
 }
 
-YBCStatus YBCPgCommitTransaction() {
-  return ToYBCStatus(pgapi->CommitTransaction());
+YBCStatus YBCPgCommitPlainTransaction() {
+  return ToYBCStatus(pgapi->CommitPlainTransaction());
 }
 
-YBCStatus YBCPgAbortTransaction() {
-  return ToYBCStatus(pgapi->AbortTransaction());
+YBCStatus YBCPgAbortPlainTransaction() {
+  return ToYBCStatus(pgapi->AbortPlainTransaction());
 }
 
 YBCStatus YBCPgSetTransactionIsolationLevel(int isolation) {
@@ -2575,6 +2578,8 @@ YBCStatus YBCLocalTablets(YBCPgTabletsDescriptor** tablets, size_t* count) {
   }
   return YBCStatusOK();
 }
+
+bool YBCIsCronLeader() { return pgapi->IsCronLeader(); }
 
 } // extern "C"
 

@@ -90,6 +90,10 @@ class OpIdPB;
 class NodeInstancePB;
 class Subprocess;
 
+namespace pgwrapper {
+class PGConn;
+}  // namespace pgwrapper
+
 namespace rpc {
 class SecureContext;
 }
@@ -540,6 +544,12 @@ class ExternalMiniCluster : public MiniClusterBase {
   // LB related tests should call this function before performing test logic to stabilize tests.
   Status WaitForLoadBalancerToBecomeIdle(
       const std::unique_ptr<yb::client::YBClient>& client, MonoDelta timeout);
+
+  // Create a PG connection to the given database. If node_index is not set, a random node is
+  // chosen.
+  Result<pgwrapper::PGConn> ConnectToDB(
+      const std::string& db_name = "yugabyte", std::optional<size_t> node_index = std::nullopt,
+      bool simple_query_protocol = false);
 
  protected:
   FRIEND_TEST(MasterFailoverTest, TestKillAnyMaster);
@@ -1042,8 +1052,7 @@ Status CompactSysCatalog(ExternalMiniCluster* cluster, const MonoDelta& timeout)
 void StartSecure(
   std::unique_ptr<ExternalMiniCluster>* cluster,
   std::unique_ptr<rpc::SecureContext>* secure_context,
-  std::unique_ptr<rpc::Messenger>* messenger,
-  const std::vector<std::string>& master_flags = std::vector<std::string>());
+  std::unique_ptr<rpc::Messenger>* messenger);
 
 Status WaitForTableIntentsApplied(
     ExternalMiniCluster* cluster, const TableId& table_id,
