@@ -1998,6 +1998,14 @@
     },
     "BackupApiFilter" : {
       "properties" : {
+        "backupUUIDList" : {
+          "items" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "type" : "array",
+          "uniqueItems" : true
+        },
         "dateRangeEnd" : {
           "description" : "The end date for backup filter.",
           "example" : "2022-12-12T13:07:18Z",
@@ -2063,7 +2071,7 @@
           "uniqueItems" : true
         }
       },
-      "required" : [ "keyspaceList", "onlyShowDeletedConfigs", "onlyShowDeletedUniverses", "scheduleUUIDList", "states", "storageConfigUUIDList", "universeNameList", "universeUUIDList" ],
+      "required" : [ "backupUUIDList", "keyspaceList", "onlyShowDeletedConfigs", "onlyShowDeletedUniverses", "scheduleUUIDList", "states", "storageConfigUUIDList", "universeNameList", "universeUUIDList" ],
       "type" : "object"
     },
     "BackupPagedApiQuery" : {
@@ -10272,6 +10280,14 @@
         "onlyShowDeletedSourceUniverses" : {
           "type" : "boolean"
         },
+        "restoreUUIDList" : {
+          "items" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "type" : "array",
+          "uniqueItems" : true
+        },
         "sourceUniverseNameList" : {
           "items" : {
             "type" : "string"
@@ -10311,7 +10327,7 @@
           "uniqueItems" : true
         }
       },
-      "required" : [ "onlyShowDeletedSourceUniverses", "sourceUniverseNameList", "states", "storageConfigUUIDList", "universeNameList", "universeUUIDList" ],
+      "required" : [ "onlyShowDeletedSourceUniverses", "restoreUUIDList", "sourceUniverseNameList", "states", "storageConfigUUIDList", "universeNameList", "universeUUIDList" ],
       "type" : "object"
     },
     "RestoreBackupParams" : {
@@ -15842,8 +15858,8 @@
           "description" : "Log relation",
           "type" : "boolean"
         },
-        "logRow" : {
-          "description" : "Log row",
+        "logRows" : {
+          "description" : "Log rows",
           "type" : "boolean"
         },
         "logStatement" : {
@@ -15855,7 +15871,7 @@
           "type" : "boolean"
         }
       },
-      "required" : [ "classes", "enabled", "logCatalog", "logClient", "logLevel", "logParameter", "logParameterMaxSize", "logRelation", "logRow", "logStatement", "logStatementOnce" ],
+      "required" : [ "classes", "enabled", "logCatalog", "logClient", "logLevel", "logParameter", "logParameterMaxSize", "logRelation", "logRows", "logStatement", "logStatementOnce" ],
       "type" : "object"
     },
     "YbcThrottleParameters" : {
@@ -25012,7 +25028,8 @@
     },
     "/api/v1/customers/{cUUID}/universes/{uniUUID}/config_alerts" : {
       "post" : {
-        "description" : "Available since YBA version 2.2.0.0.",
+        "deprecated" : true,
+        "description" : "<b style=\"color:#ff0000\">Deprecated since YBA version 2.20.5.0.</b> Deprcated since YBA version 2.20.5.0. Use 'Create maintenance window' API instead.",
         "operationId" : "configureUniverseAlerts",
         "parameters" : [ {
           "format" : "uuid",

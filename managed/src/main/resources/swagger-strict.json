@@ -1982,6 +1982,14 @@
     },
     "BackupApiFilter" : {
       "properties" : {
+        "backupUUIDList" : {
+          "items" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "type" : "array",
+          "uniqueItems" : true
+        },
         "dateRangeEnd" : {
           "description" : "The end date for backup filter.",
           "example" : "2022-12-12T13:07:18Z",
@@ -2047,7 +2055,7 @@
           "uniqueItems" : true
         }
       },
-      "required" : [ "keyspaceList", "onlyShowDeletedConfigs", "onlyShowDeletedUniverses", "scheduleUUIDList", "states", "storageConfigUUIDList", "universeNameList", "universeUUIDList" ],
+      "required" : [ "backupUUIDList", "keyspaceList", "onlyShowDeletedConfigs", "onlyShowDeletedUniverses", "scheduleUUIDList", "states", "storageConfigUUIDList", "universeNameList", "universeUUIDList" ],
       "type" : "object"
     },
     "BackupPagedApiQuery" : {
@@ -10172,6 +10180,14 @@
         "onlyShowDeletedSourceUniverses" : {
           "type" : "boolean"
         },
+        "restoreUUIDList" : {
+          "items" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "type" : "array",
+          "uniqueItems" : true
+        },
         "sourceUniverseNameList" : {
           "items" : {
             "type" : "string"
@@ -10211,7 +10227,7 @@
           "uniqueItems" : true
         }
       },
-      "required" : [ "onlyShowDeletedSourceUniverses", "sourceUniverseNameList", "states", "storageConfigUUIDList", "universeNameList", "universeUUIDList" ],
+      "required" : [ "onlyShowDeletedSourceUniverses", "restoreUUIDList", "sourceUniverseNameList", "states", "storageConfigUUIDList", "universeNameList", "universeUUIDList" ],
       "type" : "object"
     },
     "RestoreBackupParams" : {
@@ -15697,8 +15713,8 @@
           "description" : "Log relation",
           "type" : "boolean"
         },
-        "logRow" : {
-          "description" : "Log row",
+        "logRows" : {
+          "description" : "Log rows",
           "type" : "boolean"
         },
         "logStatement" : {
@@ -15710,7 +15726,7 @@
           "type" : "boolean"
         }
       },
-      "required" : [ "classes", "enabled", "logCatalog", "logClient", "logLevel", "logParameter", "logParameterMaxSize", "logRelation", "logRow", "logStatement", "logStatementOnce" ],
+      "required" : [ "classes", "enabled", "logCatalog", "logClient", "logLevel", "logParameter", "logParameterMaxSize", "logRelation", "logRows", "logStatement", "logStatementOnce" ],
       "type" : "object"
     },
     "YbcThrottleParameters" : {
@@ -23931,50 +23947,6 @@
         } ],
         "summary" : "Delete Readonly Cluster",
         "tags" : [ "UniverseClusterMutations" ]
-      }
-    },
-    "/api/v1/customers/{cUUID}/universes/{uniUUID}/config_alerts" : {
-      "post" : {
-        "description" : "Available since YBA version 2.2.0.0.",
-        "operationId" : "configureUniverseAlerts",
-        "parameters" : [ {
-          "format" : "uuid",
-          "in" : "path",
-          "name" : "cUUID",
-          "required" : true,
-          "type" : "string"
-        }, {
-          "format" : "uuid",
-          "in" : "path",
-          "name" : "uniUUID",
-          "required" : true,
-          "type" : "string"
-        }, {
-          "in" : "query",
-          "name" : "request",
-          "required" : false
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/YBPSuccess"
-            }
-          }
-        },
-        "responsesObject" : {
-          "200" : {
-            "description" : "successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/YBPSuccess"
-            }
-          }
-        },
-        "security" : [ {
-          "apiKeyAuth" : [ ]
-        } ],
-        "summary" : "Configure alerts for a universe",
-        "tags" : [ "Universe management" ]
       }
     },
     "/api/v1/customers/{cUUID}/universes/{uniUUID}/health_check" : {

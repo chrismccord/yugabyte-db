@@ -354,7 +354,8 @@ class ClusterAdminClient {
   Result<rapidjson::Document> CloneNamespace(
       const TypedNamespaceName& source_namespace, const std::string& target_namespace_name,
       HybridTime restore_at);
-  Result<rapidjson::Document> IsCloneDone(const NamespaceId& source_namespace_id, uint32_t seq_no);
+  Result<rapidjson::Document> ListClones(
+      const NamespaceId& source_namespace_id, std::optional<uint32_t> seq_no);
   Status RestoreSnapshot(const std::string& snapshot_id, HybridTime timestamp);
 
   Result<rapidjson::Document> EditSnapshotSchedule(
@@ -547,12 +548,6 @@ class ClusterAdminClient {
   }
 
   void ResetMasterProxy(const HostPort& leader_addr = HostPort());
-
-  Result<master::DisableTabletSplittingResponsePB> DisableTabletSplitsInternal(
-      int64_t disable_duration_ms, const std::string& feature_name);
-
-  Result<master::IsTabletSplittingCompleteResponsePB> IsTabletSplittingCompleteInternal(
-      bool wait_for_parent_deletion, const MonoDelta timeout = MonoDelta());
 
   std::string master_addr_list_;
   HostPort init_master_addr_;
