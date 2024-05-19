@@ -972,9 +972,9 @@ Test / testGrouping := partitionTests( (Test / definedTests).value, testShardSiz
 
 Test / javaOptions += "-Dconfig.resource=application.test.conf"
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v", "-q", "-a")
-// testOptions += Tests.Filter(s =>
-//   !s.contains("com.yugabyte.yw.commissioner.tasks.local")
-// )
+testOptions += Tests.Filter(s =>
+  !s.contains("com.yugabyte.yw.commissioner.tasks.local")
+)
 
 lazy val testLocal = taskKey[Unit]("Runs local provider tests")
 lazy val testFast = taskKey[Unit]("Runs quick tests")

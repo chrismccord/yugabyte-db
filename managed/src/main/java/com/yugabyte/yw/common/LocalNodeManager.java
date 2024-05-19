@@ -474,7 +474,6 @@ public class LocalNodeManager {
     try {
       // Access files inside master/logs directory
       File[] files = logsDir.listFiles();
-      System.out.println("files here: " + files.length);
       if (files != null) {
         for (File file : files) {
           log.debug("Catching o/p for file {}", file.getName());
@@ -488,17 +487,6 @@ public class LocalNodeManager {
                 getLogOutput(
                     nodeName + "_" + serverType + "_ERR", file, (l) -> true, ERROR_LINES_TO_DUMP));
           }
-        }
-      }
-      File sysLogs = new File("/var/log/messages");
-      if (sysLogs.exists()) {
-        log.error(
-            "Spilling /var/log/messages o/p: {}", getLogOutput("test", sysLogs, (l) -> true, 1000));
-      } else {
-        sysLogs = new File("/var/log/syslog");
-        if (sysLogs.exists()) {
-          log.error(
-              "Spilling /var/log/syslog o/p: {}", getLogOutput("test", sysLogs, (l) -> true, 1000));
         }
       }
     } catch (IOException ignored) {
@@ -596,17 +584,14 @@ public class LocalNodeManager {
         value = replaceYbHome(value, userIntent, nodeInfo);
         gflags.put(key, value);
       }
-      if (serverType == UniverseTaskBase.ServerType.TSERVER) {
-        gflags.put("ysql_log_min_messages", "DEBUG2");
+      if (!gflags.containsKey(GFlagsUtil.DEFAULT_MEMORY_LIMIT_TO_RAM_RATIO)
+          && serverType != UniverseTaskBase.ServerType.CONTROLLER) {
+        gflags.put(
+            GFlagsUtil.DEFAULT_MEMORY_LIMIT_TO_RAM_RATIO,
+            serverType == UniverseTaskBase.ServerType.TSERVER
+                ? MAX_MEM_RATIO_TSERVER
+                : MAX_MEM_RATIO_MASTER);
       }
-      //      if (!gflags.containsKey(GFlagsUtil.DEFAULT_MEMORY_LIMIT_TO_RAM_RATIO)
-      //          && serverType != UniverseTaskBase.ServerType.CONTROLLER) {
-      //        gflags.put(
-      //            GFlagsUtil.DEFAULT_MEMORY_LIMIT_TO_RAM_RATIO,
-      //            serverType == UniverseTaskBase.ServerType.TSERVER
-      //                ? MAX_MEM_RATIO_TSERVER
-      //                : MAX_MEM_RATIO_MASTER);
-      //      }
       if (gflags.containsKey(GFlagsUtil.TMP_DIRECTORY)) {
         String tmpDir = getTmpDir(gflags, nodeInfo.name, userIntent);
         new File(tmpDir).mkdirs();

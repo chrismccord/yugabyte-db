@@ -36,6 +36,7 @@ import com.yugabyte.yw.common.backuprestore.BackupHelper;
 import com.yugabyte.yw.common.certmgmt.CertificateHelper;
 import com.yugabyte.yw.common.config.GlobalConfKeys;
 import com.yugabyte.yw.common.config.RuntimeConfGetter;
+import com.yugabyte.yw.common.config.impl.SettableRuntimeConfigFactory;
 import com.yugabyte.yw.common.gflags.GFlagsUtil;
 import com.yugabyte.yw.common.gflags.SpecificGFlags;
 import com.yugabyte.yw.common.services.YBClientService;
@@ -198,6 +199,7 @@ public abstract class LocalProviderUniverseTestBase extends PlatformGuiceApplica
   protected UniverseTableHandler tableHandler;
   protected CertificateHelper certificateHelper;
   protected Commissioner commissioner;
+  protected SettableRuntimeConfigFactory settableRuntimeConfigFactory;
 
   @BeforeClass
   public static void setUpEnv() {
@@ -398,12 +400,16 @@ public abstract class LocalProviderUniverseTestBase extends PlatformGuiceApplica
     tableHandler = app.injector().instanceOf(UniverseTableHandler.class);
     certificateHelper = app.injector().instanceOf(CertificateHelper.class);
     commissioner = app.injector().instanceOf(Commissioner.class);
+    settableRuntimeConfigFactory = app.injector().instanceOf(SettableRuntimeConfigFactory.class);
   }
 
   @Before
   public void setUp() {
     injectDependencies();
 
+    settableRuntimeConfigFactory
+        .globalRuntimeConf()
+        .setValue("yb.releases.use_redesign", "false");
     Pair<Integer, Integer> ipRange = getIpRange();
     localNodeManager.setIpRangeStart(ipRange.getFirst());
     localNodeManager.setIpRangeEnd(ipRange.getSecond());
